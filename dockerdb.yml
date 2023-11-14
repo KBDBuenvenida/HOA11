@@ -61,14 +61,12 @@
       mode: '0644'
 
   - name: Build container image
-    docker_image:
-      name: docker
-      source: build
-      build:
-        path: ./root/demo-dockerfile
-        args:
-          listen_port: 8080
-      state: present
+    shell:
+      docker build - < Dockerfile
+
+  - name: Pulling docker image
+    shell:
+      docker pull ubuntu/apache2
 
   - name: Access containered app
     shell:
