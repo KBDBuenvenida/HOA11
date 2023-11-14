@@ -1,0 +1,75 @@
+---
+
+- hosts: Ubuntu
+  become: true
+  tasks:
+
+  - name: Update package cache (Ubuntu)
+    tags: always
+    apt:
+      upgrade: dist
+      update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+  - name: DPKG configure
+    shell:
+      dpkg --configure -a
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Installation of Docker
+    apt:
+      name: docker.io
+      state: latest
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Install Docker SDK
+    shell:
+      pip install docker-py
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Enable Docker
+    service:
+      name: docker
+      state: started
+      enabled: true
+
+  - name: Add Docker group to the current user
+    shell:
+      usermod -aG docker ken
+
+  - name: Restart Docker
+    service:
+      name: docker
+      state: restarted
+      enabled: true
+
+  - name: Create build directory for Docker
+    file:
+       path: ./root/demo-dockerfile
+       state: directory
+       owner: root
+       group: root
+       mode: '0755'
+
+  - name: Copy Dockerfile
+    copy:
+      src: ./Dockerfile
+      dest: ./root/demo-dockerfile/Dockerfile
+      remote_src: yes
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Build container image
+    docker_image:
+      name: docker
+      source: build
+      build:
+        path: ./root/demo-dockerfile
+        args:
+          listen_port: 8080
+      state: present
+
+  - name: Access containered app
+    shell:
+      docker run -it -d -p 8080:80 docker
